@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Cat Play Zone - Interactive Game for Cats</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            -webkit-touch-callout: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        /* Glassmorphism for panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        /* Custom progress ring for hold unlock */
+        .hold-progress {
+            transition: stroke-dashoffset 0.1s linear;
+        }
+    </style>
+</head>
+<body class="relative flex flex-col items-center justify-center min-h-screen">
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Top Bar Overlay for Humans (Score & Safety Lock) -->
+    <div class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-10">
+        <!-- Score Display -->
+        <div class="glass-panel px-5 py-2.5 rounded-full flex items-center space-x-3 text-yellow-400 font-extrabold text-xl shadow-lg border border-yellow-500/30">
+            <i data-lucide="paw-print" class="w-6 h-6 animate-bounce"></i>
+            <span id="scoreText" class="tracking-wider text-2xl">0</span>
+            <span class="text-xs text-yellow-200/70 uppercase tracking-widest pl-1 font-bold">Paws</span>
+        </div>
+
+        <!-- Mode Indicator -->
+        <div id="currentModeLabel" class="glass-panel px-4 py-2 rounded-full text-xs font-semibold text-cyan-300 uppercase tracking-widest hidden sm:flex items-center space-x-2 border border-cyan-500/30">
+            <i data-lucide="crosshair" class="w-4 h-4"></i>
+            <span id="modeName">Laser Pointer</span>
+        </div>
+
+        <!-- Lock/Settings Trigger Button (Requires 3s Hold) -->
+        <div class="pointer-events-auto relative">
+            <button id="lockBtn" class="glass-panel p-3.5 rounded-full text-slate-200 hover:text-white hover:bg-slate-800/80 transition-all shadow-xl active:scale-95 flex items-center justify-center relative overflow-hidden group">
+                <svg class="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 48 48">
+                    <circle id="holdCircle" cx="24" cy="24" r="20" stroke="rgba(59, 130, 246, 0.8)" stroke-width="4" fill="none" stroke-dasharray="125.6" stroke-dashoffset="125.6" stroke-linecap="round"></circle>
+                </svg>
+                <i data-lucide="lock" id="lockIcon" class="w-6 h-6 text-slate-300 group-hover:text-cyan-400 transition-colors"></i>
+            </button>
+            <span class="absolute right-0 top-14 bg-slate-900/90 text-slate-300 text-[10px] px-2 py-1 rounded shadow whitespace-nowrap opacity-70 pointer-events-none">Hold 3s for Settings</span>
+        </div>
+    </div>
+
+    <!-- Mode Selector Quick Dock (Visible when unlocked or at bottom edge) -->
+    <div id="quickDock" class="absolute bottom-4 glass-panel px-3 py-2 rounded-2xl flex items-center space-x-2 z-10 transition-all duration-300 shadow-2xl">
+        <button onclick="switchMode('laser')" class="mode-btn active p-3 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center text-red-500 hover:text-red-400" title="Laser Dot">
+            <i data-lucide="zap" class="w-6 h-6"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">Laser</span>
+        </button>
+        <button onclick="switchMode('mouse')" class="mode-btn p-3 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center text-amber-400 hover:text-amber-300" title="Squeaky Mouse">
+            <i data-lucide="ghost" class="w-6 h-6"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">Mouse</span>
+        </button>
+        <button onclick="switchMode('fish')" class="mode-btn p-3 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center text-cyan-400 hover:text-cyan-300" title="Underwater Fish">
+            <i data-lucide="fish" class="w-6 h-6"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">Fish</span>
+        </button>
+        <button onclick="switchMode('bug')" class="mode-btn p-3 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center text-emerald-400 hover:text-emerald-300" title="Skittering Bug">
+            <i data-lucide="bug" class="w-6 h-6"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">Bug</span>
+        </button>
+    </div>
+
+    <!-- Parent / Owner Control Modal (Hidden by Default) -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 shadow-2xl border border-slate-700 text-slate-100 flex flex-col space-y-6">
+            
+            <div class="flex justify-between items-center border-b border-slate-700/60 pb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-cyan-500/20 text-cyan-400 rounded-xl">
+                        <i data-lucide="sliders" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold tracking-tight">Cat Owner Dashboard</h2>
+                        <p class="text-xs text-slate-400">Customize the play experience</p>
+                    </div>
+                </div>
+                <button id="closeSettingsBtn" class="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Settings Options -->
+            <div class="space-y-5 text-sm">
+                <!-- Target Count -->
+                <div>
+                    <div class="flex justify-between font-medium mb-2">
+                        <span class="text-slate-300">Target Count:</span>
+                        <span id="targetCountVal" class="text-cyan-400 font-bold">2</span>
+                    </div>
+                    <input type="range" id="targetCountInput" min="1" max="5" value="2" class="w-full accent-cyan-400 bg-slate-700 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Speed Setting -->
+                <div>
+                    <div class="flex justify-between font-medium mb-2">
+                        <span class="text-slate-300">Prey Speed:</span>
+                        <span id="speedVal" class="text-cyan-400 font-bold">Medium</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setSpeed(1)" class="speed-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">Slow</button>
+                        <button onclick="setSpeed(2)" class="speed-btn px-3 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 font-bold transition-all text-xs">Medium</button>
+                        <button onclick="setSpeed(3.5)" class="speed-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">Hyper</button>
+                    </div>
+                </div>
+
+                <!-- Size Setting -->
+                <div>
+                    <div class="flex justify-between font-medium mb-2">
+                        <span class="text-slate-300">Target Size:</span>
+                        <span id="sizeVal" class="text-cyan-400 font-bold">Medium</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setSize(25)" class="size-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">Small</button>
+                        <button onclick="setSize(40)" class="size-btn px-3 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 font-bold transition-all text-xs">Medium</button>
+                        <button onclick="setSize(60)" class="size-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">Large</button>
+                    </div>
+                </div>
+
+                <!-- Audio Toggle -->
+                <div class="flex justify-between items-center pt-2">
+                    <span class="text-slate-300 font-medium">Sound Effects:</span>
+                    <button id="audioToggleBtn" onclick="toggleAudio()" class="px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold flex items-center space-x-2 text-xs">
+                        <i data-lucide="volume-2" class="w-4 h-4"></i>
+                        <span id="audioStatusText">ENABLED</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Actions -->
+            <div class="pt-4 border-t border-slate-700/60 flex space-x-3">
+                <button id="resetScoreBtn" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold transition-all flex items-center justify-center space-x-2 text-sm border border-slate-600/50">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span>Reset Score</span>
+                </button>
+                <button id="fullscreenBtn" class="flex-1 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-all flex items-center justify-center space-x-2 text-sm shadow-lg shadow-cyan-600/30">
+                    <i data-lucide="maximize" class="w-4 h-4"></i>
+                    <span>Fullscreen</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Web Audio API Synthesizer Script -->
+    <script>
+        // Web Audio Context initialization
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Sound generator functions
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+
+                if (type === 'laser') {
+                    // Futuristic synth blip / pop
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'mouse') {
+                    // Squeak sound
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(1500, now);
+                    osc.frequency.linearRampToValueAtTime(2800, now + 0.06);
+                    osc.frequency.linearRampToValueAtTime(1800, now + 0.12);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'fish') {
+                    // Water splash / plop sound
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(700, now + 0.05);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'bug') {
+                    // Skitter / Crunch pop
+                    const bufferSize = audioCtx.sampleRate * 0.05;
+                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const whiteNoise = audioCtx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(2000, now);
+                    filter.Q.setValueAtTime(3, now);
+
+                    const gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    whiteNoise.start(now);
+                }
+            } catch (e) {
+                console.error("Audio error", e);
+            }
+        }
+    </script>
+
+    <!-- Main Game Logic Script -->
+    <script>
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Game State Parameters
+        let score = 0;
+        let mode = 'laser'; // 'laser', 'mouse', 'fish', 'bug'
+        let baseSize = 40;
+        let speedMultiplier = 2;
+        let targetCount = 2;
+
+        let preys = [];
+        let particles = [];
+        let pawPrints = [];
+
+        // Modes config
+        const modeConfigs = {
+            laser: { name: 'Laser Pointer', bg: '#0b0f19' },
+            mouse: { name: 'Squeaky Mouse', bg: '#1e1b18' },
+            fish: { name: 'Underwater Fish', bg: '#061a2c' },
+            bug: { name: 'Skittering Bug', bg: '#141a12' }
+        };
+
+        // Class representing interactive Targets / Preys
+        class Prey {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.size = baseSize * (0.8 + Math.random() * 0.4);
+                this.x = Math.random() * (canvas.width - 100) + 50;
+                this.y = Math.random() * (canvas.height - 100) + 50;
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = (2 + Math.random() * 3) * speedMultiplier;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+
+                this.changeDirTimer = 0;
+                this.changeDirInterval = Math.floor(Math.random() * 40 + 20);
+                this.isHiding = false;
+                this.hideTimer = 0;
+                this.rotation = angle;
+                this.animPhase = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.animPhase += 0.2;
+                this.changeDirTimer++;
+
+                // Mode-specific AI behaviors
+                if (mode === 'laser') {
+                    // Erratic rapid jitter and sharp turns
+                    if (this.changeDirTimer > this.changeDirInterval) {
+                        this.changeDirTimer = 0;
+                        this.changeDirInterval = Math.floor(Math.random() * 20 + 10);
+                        
+                        // 30% chance to jump/burst
+                        if (Math.random() < 0.3) {
+                            this.x = Math.random() * (canvas.width - 100) + 50;
+                            this.y = Math.random() * (canvas.height - 100) + 50;
+                        } else {
+                            const angle = Math.random() * Math.PI * 2;
+                            const speed = (4 + Math.random() * 5) * speedMultiplier;
+                            this.vx = Math.cos(angle) * speed;
+                            this.vy = Math.sin(angle) * speed;
+                        }
+                    }
+                } else if (mode === 'mouse') {
+                    // Pause, scurry, change directions
+                    if (this.changeDirTimer > this.changeDirInterval) {
+                        this.changeDirTimer = 0;
+                        this.changeDirInterval = Math.floor(Math.random() * 60 + 30);
+                        if (Math.random() < 0.25) {
+                            // Stop briefly
+                            this.vx = 0;
+                            this.vy = 0;
+                        } else {
+                            const angle = Math.random() * Math.PI * 2;
+                            const speed = (2.5 + Math.random() * 3.5) * speedMultiplier;
+                            this.vx = Math.cos(angle) * speed;
+                            this.vy = Math.sin(angle) * speed;
+                        }
+                    }
+                } else if (mode === 'fish') {
+                    // Smooth swimming with gentle sine wave motions
+                    this.vy += Math.sin(this.animPhase) * 0.15;
+                    if (this.changeDirTimer > this.changeDirInterval) {
+                        this.changeDirTimer = 0;
+                        this.changeDirInterval = Math.floor(Math.random() * 80 + 40);
+                        const angle = Math.atan2(this.vy, this.vx) + (Math.random() - 0.5);
+                        const speed = (1.5 + Math.random() * 2.5) * speedMultiplier;
+                        this.vx = Math.cos(angle) * speed;
+                        this.vy = Math.sin(angle) * speed;
+                    }
+                } else if (mode === 'bug') {
+                    // Fast skittering with frequent sharp turns
+                    if (this.changeDirTimer > this.changeDirInterval) {
+                        this.changeDirTimer = 0;
+                        this.changeDirInterval = Math.floor(Math.random() * 15 + 10);
+                        const angle = Math.atan2(this.vy, this.vx) + (Math.random() - 0.5) * 1.8;
+                        const speed = (3.5 + Math.random() * 4) * speedMultiplier;
+                        this.vx = Math.cos(angle) * speed;
+                        this.vy = Math.sin(angle) * speed;
+                    }
+                }
+
+                // Move
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Canvas edge bounce
+                const margin = this.size;
+                if (this.x < margin) { this.x = margin; this.vx *= -1; }
+                if (this.x > canvas.width - margin) { this.x = canvas.width - margin; this.vx *= -1; }
+                if (this.y < margin) { this.y = margin; this.vy *= -1; }
+                if (this.y > canvas.height - margin) { this.y = canvas.height - margin; this.vy *= -1; }
+
+                if (Math.abs(this.vx) > 0.1 || Math.abs(this.vy) > 0.1) {
+                    this.rotation = Math.atan2(this.vy, this.vx);
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                if (mode === 'laser') {
+                    // High-contrast glowing red dot
+                    const glowGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, this.size);
+                    glowGrad.addColorStop(0, '#ffffff');
+                    glowGrad.addColorStop(0.2, '#ff1a1a');
+                    glowGrad.addColorStop(0.6, 'rgba(255, 0, 0, 0.8)');
+                    glowGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+
+                    ctx.fillStyle = glowGrad;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Core bright spot
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size * 0.25, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (mode === 'mouse') {
+                    ctx.rotate(this.rotation);
+                    const s = this.size;
+
+                    // Mouse Body (Bright yellow/amber for high cat visibility)
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, s * 0.9, s * 0.6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Ears
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath();
+                    ctx.arc(-s * 0.3, -s * 0.5, s * 0.35, 0, Math.PI * 2);
+                    ctx.arc(-s * 0.3, s * 0.5, s * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Eyes
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.arc(s * 0.4, -s * 0.25, s * 0.12, 0, Math.PI * 2);
+                    ctx.arc(s * 0.4, s * 0.25, s * 0.12, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tail
+                    ctx.strokeStyle = '#f43f5e';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-s * 0.9, 0);
+                    const tailWiggle = Math.sin(this.animPhase * 2) * 8;
+                    ctx.quadraticCurveTo(-s * 1.5, tailWiggle, -s * 2, tailWiggle * 0.5);
+                    ctx.stroke();
+
+                } else if (mode === 'fish') {
+                    ctx.rotate(this.rotation);
+                    const s = this.size;
+
+                    // Fish Body (Vivid Cyan/Yellow)
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, s, s * 0.5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tail Fin (Wiggling)
+                    const tailAngle = Math.sin(this.animPhase * 2.5) * 0.4;
+                    ctx.save();
+                    ctx.translate(-s, 0);
+                    ctx.rotate(tailAngle);
+                    ctx.fillStyle = '#facc15';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(-s * 0.7, -s * 0.5);
+                    ctx.lineTo(-s * 0.7, s * 0.5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Eye
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(s * 0.5, -s * 0.15, s * 0.18, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#000000';
+                    ctx.beginPath();
+                    ctx.arc(s * 0.55, -s * 0.15, s * 0.09, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (mode === 'bug') {
+                    ctx.rotate(this.rotation);
+                    const s = this.size * 0.8;
+
+                    // Bug Legs (Rapid movement animation)
+                    ctx.strokeStyle = '#a3e635';
+                    ctx.lineWidth = 2.5;
+                    for (let i = -1; i <= 1; i++) {
+                        const legOffset = Math.sin(this.animPhase * 3 + i) * 6;
+                        ctx.beginPath();
+                        ctx.moveTo(i * s * 0.4, 0);
+                        ctx.lineTo(i * s * 0.4 + legOffset, -s * 0.9);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.moveTo(i * s * 0.4, 0);
+                        ctx.lineTo(i * s * 0.4 - legOffset, s * 0.9);
+                        ctx.stroke();
+                    }
+
+                    // Bug Shell / Body (Neon Green)
+                    ctx.fillStyle = '#84cc16';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, s * 0.8, s * 0.5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Head
+                    ctx.fillStyle = '#4d7c0f';
+                    ctx.beginPath();
+                    ctx.arc(s * 0.7, 0, s * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Antennae
+                    ctx.strokeStyle = '#bef264';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(s * 0.8, -s * 0.1);
+                    ctx.lineTo(s * 1.4, -s * 0.5);
+                    ctx.moveTo(s * 0.8, s * 0.1);
+                    ctx.lineTo(s * 1.4, s * 0.5);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Particle Effects (Sparks, Ripples, Splats)
+        class Particle {
+            constructor(x, y, color, type = 'spark') {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.type = type;
+                this.radius = Math.random() * 6 + 2;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.04 + 0.02;
+                this.maxRadius = Math.random() * 40 + 20; // For ripples
+            }
+
+            update() {
+                if (this.type === 'ripple') {
+                    this.radius += 2.5;
+                    this.alpha -= 0.03;
+                } else {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.alpha -= this.decay;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+
+                if (this.type === 'ripple') {
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Visual Paw Print Overlay
+        class PawPrint {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.alpha = 0.8;
+                this.scale = 0.8 + Math.random() * 0.4;
+                this.rotation = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.alpha -= 0.015;
+            }
+
+            draw() {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.scale(this.scale, this.scale);
+                ctx.globalAlpha = this.alpha;
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+
+                // Main Pad
+                ctx.beginPath();
+                ctx.ellipse(0, 4, 14, 11, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 4 Toe Beans
+                const toes = [
+                    { x: -14, y: -10, rx: 4, ry: 6, a: -0.3 },
+                    { x: -5,  y: -16, rx: 4.5, ry: 6.5, a: -0.1 },
+                    { x: 5,   y: -16, rx: 4.5, ry: 6.5, a: 0.1 },
+                    { x: 14,  y: -10, rx: 4, ry: 6, a: 0.3 }
+                ];
+
+                toes.forEach(t => {
+                    ctx.save();
+                    ctx.translate(t.x, t.y);
+                    ctx.rotate(t.a);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, t.rx, t.ry, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+
+                ctx.restore();
+            }
+        }
+
+        // Sync Preys with target count setting
+        function syncPreys() {
+            while (preys.length < targetCount) {
+                preys.push(new Prey());
+            }
+            while (preys.length > targetCount) {
+                preys.pop();
+            }
+        }
+
+        // Initialize Game Targets
+        syncPreys();
+
+        // Main Animation Loop (60fps)
+        function animate() {
+            // Draw background
+            ctx.fillStyle = modeConfigs[mode].bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Underwater Background Effect for Fish mode
+            if (mode === 'fish') {
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.03)';
+                const t = Date.now() * 0.001;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(
+                        canvas.width * (0.2 + i * 0.3) + Math.sin(t + i) * 30,
+                        canvas.height * (0.3 + i * 0.2) + Math.cos(t * 0.8 + i) * 30,
+                        120 + i * 40, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            }
+
+            // Draw & Update Paw Prints
+            for (let i = pawPrints.length - 1; i >= 0; i--) {
+                pawPrints[i].update();
+                pawPrints[i].draw();
+                if (pawPrints[i].alpha <= 0) pawPrints.splice(i, 1);
+            }
+
+            // Draw & Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].alpha <= 0) particles.splice(i, 1);
+            }
+
+            // Update & Draw Targets
+            preys.forEach(prey => {
+                prey.update();
+                prey.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start animation loop on window load
+        window.onload = function() {
+            animate();
+            lucide.createIcons();
+        };
+
+        // Touch & Interaction Event Handling
+        function handleInteraction(clientX, clientY) {
+            initAudio();
+
+            // Spawn visual paw print
+            pawPrints.push(new PawPrint(clientX, clientY));
+
+            // Check hit detection on preys
+            let hit = false;
+            preys.forEach(prey => {
+                const dist = Math.hypot(clientX - prey.x, clientY - prey.y);
+                if (dist < prey.size * 1.5) {
+                    hit = true;
+                    score++;
+                    document.getElementById('scoreText').innerText = score;
+
+                    // Play audio feedback
+                    playSound(mode);
+
+                    // Trigger Vibration if supported
+                    if (navigator.vibrate) {
+                        navigator.vibrate(40);
+                    }
+
+                    // Create hit particle burst
+                    if (mode === 'laser') {
+                        for (let i = 0; i < 15; i++) {
+                            particles.push(new Particle(prey.x, prey.y, '#ff4d4d', 'spark'));
+                        }
+                    } else if (mode === 'mouse') {
+                        for (let i = 0; i < 12; i++) {
+                            particles.push(new Particle(prey.x, prey.y, '#f59e0b', 'spark'));
+                        }
+                    } else if (mode === 'fish') {
+                        particles.push(new Particle(clientX, clientY, '#38bdf8', 'ripple'));
+                        for (let i = 0; i < 10; i++) {
+                            particles.push(new Particle(prey.x, prey.y, '#e0f2fe', 'spark'));
+                        }
+                    } else if (mode === 'bug') {
+                        for (let i = 0; i < 15; i++) {
+                            particles.push(new Particle(prey.x, prey.y, '#84cc16', 'spark'));
+                        }
+                    }
+
+                    // Respawn or relocate prey
+                    prey.reset();
+                }
+            });
+
+            // Tap on water splash effect when no fish hit
+            if (!hit && mode === 'fish') {
+                particles.push(new Particle(clientX, clientY, 'rgba(56, 189, 248, 0.6)', 'ripple'));
+                playSound('fish');
+            }
+        }
+
+        // Register Touch & Pointer Events
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            handleInteraction(e.clientX, e.clientY);
+        });
+
+        // Mode Switching Logic
+        function switchMode(newMode) {
+            mode = newMode;
+            document.getElementById('modeName').innerText = modeConfigs[mode].name;
+            
+            // Highlight Dock Button
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('ring-2', 'ring-cyan-400', 'bg-slate-700/60'));
+            event.currentTarget.classList.add('ring-2', 'ring-cyan-400', 'bg-slate-700/60');
+
+            // Reset preys positions for new mode
+            preys.forEach(p => p.reset());
+        }
+
+        // Parent Control Safety Lock (3-Second Hold)
+        const lockBtn = document.getElementById('lockBtn');
+        const holdCircle = document.getElementById('holdCircle');
+        const settingsModal = document.getElementById('settingsModal');
+        let holdTimer = null;
+        let holdStartTime = 0;
+        const holdDuration = 3000; // 3 seconds
+
+        function startHold(e) {
+            e.preventDefault();
+            holdStartTime = Date.now();
+            
+            holdTimer = setInterval(() => {
+                const elapsed = Date.now() - holdStartTime;
+                const progress = Math.min(elapsed / holdDuration, 1);
+                const dashoffset = 125.6 * (1 - progress);
+                holdCircle.style.strokeDashoffset = dashoffset;
+
+                if (progress >= 1) {
+                    clearInterval(holdTimer);
+                    openSettings();
+                    resetHold();
+                }
+            }, 50);
+        }
+
+        function resetHold() {
+            if (holdTimer) clearInterval(holdTimer);
+            holdCircle.style.strokeDashoffset = '125.6';
+        }
+
+        lockBtn.addEventListener('pointerdown', startHold);
+        lockBtn.addEventListener('pointerup', resetHold);
+        lockBtn.addEventListener('pointerleave', resetHold);
+
+        // Open/Close Dashboard Modal
+        function openSettings() {
+            settingsModal.classList.remove('hidden');
+        }
+
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+        });
+
+        // Owner Dashboard Controls
+        document.getElementById('targetCountInput').addEventListener('input', (e) => {
+            targetCount = parseInt(e.target.value);
+            document.getElementById('targetCountVal').innerText = targetCount;
+            syncPreys();
+        });
+
+        function setSpeed(val) {
+            speedMultiplier = val;
+            const labels = { 1: 'Slow', 2: 'Medium', 3.5: 'Hyper' };
+            document.getElementById('speedVal').innerText = labels[val] || 'Custom';
+            
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.className = 'speed-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs';
+            });
+            event.currentTarget.className = 'speed-btn px-3 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 font-bold transition-all text-xs';
+        }
+
+        function setSize(val) {
+            baseSize = val;
+            const labels = { 25: 'Small', 40: 'Medium', 60: 'Large' };
+            document.getElementById('sizeVal').innerText = labels[val] || 'Custom';
+            
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.className = 'size-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs';
+            });
+            event.currentTarget.className = 'size-btn px-3 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 font-bold transition-all text-xs';
+
+            preys.forEach(p => p.size = baseSize);
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('audioToggleBtn');
+            const txt = document.getElementById('audioStatusText');
+            if (soundEnabled) {
+                txt.innerText = 'ENABLED';
+                btn.className = 'px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold flex items-center space-x-2 text-xs';
+            } else {
+                txt.innerText = 'MUTED';
+                btn.className = 'px-4 py-2 bg-rose-500/20 border border-rose-500/40 text-rose-400 rounded-xl font-bold flex items-center space-x-2 text-xs';
+            }
+        }
+
+        // Reset Score
+        document.getElementById('resetScoreBtn').addEventListener('click', () => {
+            score = 0;
+            document.getElementById('scoreText').innerText = score;
+        });
+
+        // Fullscreen Toggle
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Fullscreen error: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
