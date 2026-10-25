@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Cat Play Zone - Interactive Game for Cats</title>
+    <title>貓咪遊樂園 - Interactive Cat Game</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -22,22 +22,17 @@
             height: 100%;
             overflow: hidden;
             background-color: #0f172a;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         canvas {
             display: block;
             width: 100vw;
             height: 100vh;
         }
-        /* Glassmorphism for panels */
         .glass-panel {
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.88);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-        /* Custom progress ring for hold unlock */
-        .hold-progress {
-            transition: stroke-dashoffset 0.1s linear;
         }
     </style>
 </head>
@@ -49,16 +44,16 @@
     <!-- Top Bar Overlay for Humans (Score & Safety Lock) -->
     <div class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-10">
         <!-- Score Display -->
-        <div class="glass-panel px-5 py-2.5 rounded-full flex items-center space-x-3 text-yellow-400 font-extrabold text-xl shadow-lg border border-yellow-500/30">
+        <div class="glass-panel px-5 py-2.5 rounded-full flex items-center space-x-3 text-amber-400 font-extrabold text-xl shadow-lg border border-amber-500/30">
             <i data-lucide="paw-print" class="w-6 h-6 animate-bounce"></i>
             <span id="scoreText" class="tracking-wider text-2xl">0</span>
-            <span class="text-xs text-yellow-200/70 uppercase tracking-widest pl-1 font-bold">Paws</span>
+            <span class="text-xs text-amber-200/70 uppercase tracking-widest pl-1 font-bold">肉墊印記</span>
         </div>
 
         <!-- Mode Indicator -->
         <div id="currentModeLabel" class="glass-panel px-4 py-2 rounded-full text-xs font-semibold text-cyan-300 uppercase tracking-widest hidden sm:flex items-center space-x-2 border border-cyan-500/30">
             <i data-lucide="crosshair" class="w-4 h-4"></i>
-            <span id="modeName">Laser Pointer</span>
+            <span id="modeName">雷射紅點</span>
         </div>
 
         <!-- Lock/Settings Trigger Button (Requires 3s Hold) -->
@@ -69,31 +64,39 @@
                 </svg>
                 <i data-lucide="lock" id="lockIcon" class="w-6 h-6 text-slate-300 group-hover:text-cyan-400 transition-colors"></i>
             </button>
-            <span class="absolute right-0 top-14 bg-slate-900/90 text-slate-300 text-[10px] px-2 py-1 rounded shadow whitespace-nowrap opacity-70 pointer-events-none">Hold 3s for Settings</span>
+            <span class="absolute right-0 top-14 bg-slate-900/90 text-slate-300 text-[10px] px-2 py-1 rounded shadow whitespace-nowrap opacity-75 pointer-events-none">長按 3 秒進入設定</span>
         </div>
     </div>
 
-    <!-- Mode Selector Quick Dock (Visible when unlocked or at bottom edge) -->
-    <div id="quickDock" class="absolute bottom-4 glass-panel px-3 py-2 rounded-2xl flex items-center space-x-2 z-10 transition-all duration-300 shadow-2xl">
-        <button onclick="switchMode('laser')" class="mode-btn active p-3 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center text-red-500 hover:text-red-400" title="Laser Dot">
-            <i data-lucide="zap" class="w-6 h-6"></i>
-            <span class="text-[10px] mt-1 font-semibold text-slate-300">Laser</span>
+    <!-- Mode Selector Quick Dock -->
+    <div id="quickDock" class="absolute bottom-4 glass-panel px-3 py-2 rounded-2xl flex items-center space-x-1.5 z-10 transition-all duration-300 shadow-2xl max-w-[98vw] overflow-x-auto">
+        <button onclick="switchMode('laser')" class="mode-btn active p-2.5 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center min-w-[56px] text-red-500 hover:text-red-400">
+            <i data-lucide="zap" class="w-5 h-5"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">雷射</span>
         </button>
-        <button onclick="switchMode('mouse')" class="mode-btn p-3 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center text-amber-400 hover:text-amber-300" title="Squeaky Mouse">
-            <i data-lucide="ghost" class="w-6 h-6"></i>
-            <span class="text-[10px] mt-1 font-semibold text-slate-300">Mouse</span>
+        <button onclick="switchMode('butterfly')" class="mode-btn p-2.5 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center min-w-[56px] text-purple-400 hover:text-purple-300">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">蝴蝶</span>
         </button>
-        <button onclick="switchMode('fish')" class="mode-btn p-3 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center text-cyan-400 hover:text-cyan-300" title="Underwater Fish">
-            <i data-lucide="fish" class="w-6 h-6"></i>
-            <span class="text-[10px] mt-1 font-semibold text-slate-300">Fish</span>
+        <button onclick="switchMode('tail')" class="mode-btn p-2.5 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center min-w-[56px] text-amber-400 hover:text-amber-300">
+            <i data-lucide="feather" class="w-5 h-5"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">尾巴</span>
         </button>
-        <button onclick="switchMode('bug')" class="mode-btn p-3 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center text-emerald-400 hover:text-emerald-300" title="Skittering Bug">
-            <i data-lucide="bug" class="w-6 h-6"></i>
-            <span class="text-[10px] mt-1 font-semibold text-slate-300">Bug</span>
+        <button onclick="switchMode('mouse')" class="mode-btn p-2.5 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center min-w-[56px] text-yellow-500 hover:text-yellow-400">
+            <i data-lucide="ghost" class="w-5 h-5"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">老鼠</span>
+        </button>
+        <button onclick="switchMode('fish')" class="mode-btn p-2.5 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center min-w-[56px] text-cyan-400 hover:text-cyan-300">
+            <i data-lucide="fish" class="w-5 h-5"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">小魚</span>
+        </button>
+        <button onclick="switchMode('bug')" class="mode-btn p-2.5 rounded-xl hover:bg-slate-700/50 transition-all flex flex-col items-center min-w-[56px] text-emerald-400 hover:text-emerald-300">
+            <i data-lucide="bug" class="w-5 h-5"></i>
+            <span class="text-[10px] mt-1 font-semibold text-slate-300">甲蟲</span>
         </button>
     </div>
 
-    <!-- Parent / Owner Control Modal (Hidden by Default) -->
+    <!-- Parent / Owner Control Modal -->
     <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="glass-panel max-w-md w-full rounded-3xl p-6 shadow-2xl border border-slate-700 text-slate-100 flex flex-col space-y-6">
             
@@ -103,8 +106,8 @@
                         <i data-lucide="sliders" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-bold tracking-tight">Cat Owner Dashboard</h2>
-                        <p class="text-xs text-slate-400">Customize the play experience</p>
+                        <h2 class="text-xl font-bold tracking-tight">貓主人控制台</h2>
+                        <p class="text-xs text-slate-400">自訂貓咪遊戲體驗</p>
                     </div>
                 </div>
                 <button id="closeSettingsBtn" class="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
@@ -117,7 +120,7 @@
                 <!-- Target Count -->
                 <div>
                     <div class="flex justify-between font-medium mb-2">
-                        <span class="text-slate-300">Target Count:</span>
+                        <span class="text-slate-300">獵物數量：</span>
                         <span id="targetCountVal" class="text-cyan-400 font-bold">2</span>
                     </div>
                     <input type="range" id="targetCountInput" min="1" max="5" value="2" class="w-full accent-cyan-400 bg-slate-700 rounded-lg cursor-pointer">
@@ -126,35 +129,35 @@
                 <!-- Speed Setting -->
                 <div>
                     <div class="flex justify-between font-medium mb-2">
-                        <span class="text-slate-300">Prey Speed:</span>
-                        <span id="speedVal" class="text-cyan-400 font-bold">Medium</span>
+                        <span class="text-slate-300">移動速度：</span>
+                        <span id="speedVal" class="text-cyan-400 font-bold">中等</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
-                        <button onclick="setSpeed(1)" class="speed-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">Slow</button>
-                        <button onclick="setSpeed(2)" class="speed-btn px-3 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 font-bold transition-all text-xs">Medium</button>
-                        <button onclick="setSpeed(3.5)" class="speed-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">Hyper</button>
+                        <button onclick="setSpeed(1)" class="speed-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">慢速</button>
+                        <button onclick="setSpeed(2)" class="speed-btn px-3 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 font-bold transition-all text-xs">中等</button>
+                        <button onclick="setSpeed(3.5)" class="speed-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">極速</button>
                     </div>
                 </div>
 
                 <!-- Size Setting -->
                 <div>
                     <div class="flex justify-between font-medium mb-2">
-                        <span class="text-slate-300">Target Size:</span>
-                        <span id="sizeVal" class="text-cyan-400 font-bold">Medium</span>
+                        <span class="text-slate-300">獵物大小：</span>
+                        <span id="sizeVal" class="text-cyan-400 font-bold">標準</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
-                        <button onclick="setSize(25)" class="size-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">Small</button>
-                        <button onclick="setSize(40)" class="size-btn px-3 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 font-bold transition-all text-xs">Medium</button>
-                        <button onclick="setSize(60)" class="size-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">Large</button>
+                        <button onclick="setSize(25)" class="size-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">偏小</button>
+                        <button onclick="setSize(40)" class="size-btn px-3 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 font-bold transition-all text-xs">標準</button>
+                        <button onclick="setSize(60)" class="size-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs">大型</button>
                     </div>
                 </div>
 
                 <!-- Audio Toggle -->
                 <div class="flex justify-between items-center pt-2">
-                    <span class="text-slate-300 font-medium">Sound Effects:</span>
+                    <span class="text-slate-300 font-medium">遊戲音效：</span>
                     <button id="audioToggleBtn" onclick="toggleAudio()" class="px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold flex items-center space-x-2 text-xs">
                         <i data-lucide="volume-2" class="w-4 h-4"></i>
-                        <span id="audioStatusText">ENABLED</span>
+                        <span id="audioStatusText">已開啟</span>
                     </button>
                 </div>
             </div>
@@ -163,19 +166,18 @@
             <div class="pt-4 border-t border-slate-700/60 flex space-x-3">
                 <button id="resetScoreBtn" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold transition-all flex items-center justify-center space-x-2 text-sm border border-slate-600/50">
                     <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                    <span>Reset Score</span>
+                    <span>重置分數</span>
                 </button>
                 <button id="fullscreenBtn" class="flex-1 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-all flex items-center justify-center space-x-2 text-sm shadow-lg shadow-cyan-600/30">
                     <i data-lucide="maximize" class="w-4 h-4"></i>
-                    <span>Fullscreen</span>
+                    <span>全螢幕模式</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Web Audio API Synthesizer Script -->
+    <!-- Audio Synthesizer Engine -->
     <script>
-        // Web Audio Context initialization
         let audioCtx = null;
         let soundEnabled = true;
 
@@ -188,7 +190,6 @@
             }
         }
 
-        // Sound generator functions
         function playSound(type) {
             if (!soundEnabled) return;
             try {
@@ -196,7 +197,6 @@
                 const now = audioCtx.currentTime;
 
                 if (type === 'laser') {
-                    // Futuristic synth blip / pop
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sine';
@@ -208,8 +208,45 @@
                     gain.connect(audioCtx.destination);
                     osc.start(now);
                     osc.stop(now + 0.08);
+                } else if (type === 'butterfly') {
+                    // Soft high chirp / flutter synth
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, now);
+                    osc.frequency.exponentialRampToValueAtTime(1800, now + 0.05);
+                    osc.frequency.exponentialRampToValueAtTime(900, now + 0.12);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'tail') {
+                    // Rustling whip/swish sound
+                    const bufferSize = audioCtx.sampleRate * 0.08;
+                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(1200, now);
+                    filter.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+
+                    const gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    noise.start(now);
                 } else if (type === 'mouse') {
-                    // Squeak sound
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'triangle';
@@ -223,7 +260,6 @@
                     osc.start(now);
                     osc.stop(now + 0.12);
                 } else if (type === 'fish') {
-                    // Water splash / plop sound
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sine';
@@ -237,15 +273,14 @@
                     osc.start(now);
                     osc.stop(now + 0.15);
                 } else if (type === 'bug') {
-                    // Skitter / Crunch pop
                     const bufferSize = audioCtx.sampleRate * 0.05;
                     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                     const output = buffer.getChannelData(0);
                     for (let i = 0; i < bufferSize; i++) {
                         output[i] = Math.random() * 2 - 1;
                     }
-                    const whiteNoise = audioCtx.createBufferSource();
-                    whiteNoise.buffer = buffer;
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = buffer;
 
                     const filter = audioCtx.createBiquadFilter();
                     filter.type = 'bandpass';
@@ -256,10 +291,10 @@
                     gain.gain.setValueAtTime(0.3, now);
                     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
 
-                    whiteNoise.connect(filter);
+                    noise.connect(filter);
                     filter.connect(gain);
                     gain.connect(audioCtx.destination);
-                    whiteNoise.start(now);
+                    noise.start(now);
                 }
             } catch (e) {
                 console.error("Audio error", e);
@@ -267,9 +302,8 @@
         }
     </script>
 
-    <!-- Main Game Logic Script -->
+    <!-- Main Game Engine -->
     <script>
-        // Canvas Setup
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -280,9 +314,8 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Game State Parameters
         let score = 0;
-        let mode = 'laser'; // 'laser', 'mouse', 'fish', 'bug'
+        let mode = 'laser';
         let baseSize = 40;
         let speedMultiplier = 2;
         let targetCount = 2;
@@ -291,15 +324,16 @@
         let particles = [];
         let pawPrints = [];
 
-        // Modes config
         const modeConfigs = {
-            laser: { name: 'Laser Pointer', bg: '#0b0f19' },
-            mouse: { name: 'Squeaky Mouse', bg: '#1e1b18' },
-            fish: { name: 'Underwater Fish', bg: '#061a2c' },
-            bug: { name: 'Skittering Bug', bg: '#141a12' }
+            laser: { name: '雷射紅點', bg: '#0b0f19' },
+            butterfly: { name: '美麗蝴蝶', bg: '#130d22' },
+            tail: { name: '搖擺尾巴', bg: '#1a110a' },
+            mouse: { name: '吱吱老鼠', bg: '#1e1b18' },
+            fish: { name: '水底小魚', bg: '#061a2c' },
+            bug: { name: '飛躍甲蟲', bg: '#141a12' }
         };
 
-        // Class representing interactive Targets / Preys
+        // Interactive Target Entity
         class Prey {
             constructor() {
                 this.reset();
@@ -307,8 +341,8 @@
 
             reset() {
                 this.size = baseSize * (0.8 + Math.random() * 0.4);
-                this.x = Math.random() * (canvas.width - 100) + 50;
-                this.y = Math.random() * (canvas.height - 100) + 50;
+                this.x = Math.random() * (canvas.width - 120) + 60;
+                this.y = Math.random() * (canvas.height - 120) + 60;
                 
                 const angle = Math.random() * Math.PI * 2;
                 const speed = (2 + Math.random() * 3) * speedMultiplier;
@@ -317,24 +351,26 @@
 
                 this.changeDirTimer = 0;
                 this.changeDirInterval = Math.floor(Math.random() * 40 + 20);
-                this.isHiding = false;
-                this.hideTimer = 0;
                 this.rotation = angle;
                 this.animPhase = Math.random() * Math.PI * 2;
+                this.flapSpeed = 0.25 + Math.random() * 0.15;
+
+                // Multi-segment tail physics initial state
+                this.segments = [];
+                const segmentCount = 10;
+                for (let i = 0; i < segmentCount; i++) {
+                    this.segments.push({ x: this.x - i * 8, y: this.y });
+                }
             }
 
             update() {
-                this.animPhase += 0.2;
+                this.animPhase += this.flapSpeed;
                 this.changeDirTimer++;
 
-                // Mode-specific AI behaviors
                 if (mode === 'laser') {
-                    // Erratic rapid jitter and sharp turns
                     if (this.changeDirTimer > this.changeDirInterval) {
                         this.changeDirTimer = 0;
                         this.changeDirInterval = Math.floor(Math.random() * 20 + 10);
-                        
-                        // 30% chance to jump/burst
                         if (Math.random() < 0.3) {
                             this.x = Math.random() * (canvas.width - 100) + 50;
                             this.y = Math.random() * (canvas.height - 100) + 50;
@@ -345,13 +381,61 @@
                             this.vy = Math.sin(angle) * speed;
                         }
                     }
+                } else if (mode === 'butterfly') {
+                    // Fluttering zig-zag flight physics
+                    this.vx += (Math.random() - 0.5) * 1.5;
+                    this.vy += (Math.random() - 0.5) * 1.5 + Math.sin(this.animPhase) * 0.8;
+
+                    // Speed clamping
+                    const maxS = 4 * speedMultiplier;
+                    const currentS = Math.hypot(this.vx, this.vy);
+                    if (currentS > maxS) {
+                        this.vx = (this.vx / currentS) * maxS;
+                        this.vy = (this.vy / currentS) * maxS;
+                    }
+
+                    // Leave subtle sparkle trail
+                    if (Math.random() < 0.3) {
+                        particles.push(new Particle(this.x, this.y, '#e879f9', 'spark', 1.5));
+                    }
+                } else if (mode === 'tail') {
+                    // Organic serpentine movement across screen
+                    if (this.changeDirTimer > this.changeDirInterval) {
+                        this.changeDirTimer = 0;
+                        this.changeDirInterval = Math.floor(Math.random() * 50 + 20);
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = (2 + Math.random() * 3) * speedMultiplier;
+                        this.vx = Math.cos(angle) * speed;
+                        this.vy = Math.sin(angle) * speed;
+                    }
+
+                    // Wiggling head oscillation
+                    const wiggle = Math.sin(this.animPhase * 1.5) * 2;
+                    this.x += this.vx + Math.cos(this.rotation + Math.PI / 2) * wiggle;
+                    this.y += this.vy + Math.sin(this.rotation + Math.PI / 2) * wiggle;
+
+                    // Segment Inverse Kinematics / Follower logic
+                    if (this.segments.length > 0) {
+                        this.segments[0].x = this.x;
+                        this.segments[0].y = this.y;
+                        for (let i = 1; i < this.segments.length; i++) {
+                            const prev = this.segments[i - 1];
+                            const curr = this.segments[i];
+                            const dx = curr.x - prev.x;
+                            const dy = curr.y - prev.y;
+                            const dist = Math.hypot(dx, dy);
+                            const targetDist = this.size * 0.28;
+                            if (dist > 0) {
+                                curr.x = prev.x + (dx / dist) * targetDist;
+                                curr.y = prev.y + (dy / dist) * targetDist;
+                            }
+                        }
+                    }
                 } else if (mode === 'mouse') {
-                    // Pause, scurry, change directions
                     if (this.changeDirTimer > this.changeDirInterval) {
                         this.changeDirTimer = 0;
                         this.changeDirInterval = Math.floor(Math.random() * 60 + 30);
                         if (Math.random() < 0.25) {
-                            // Stop briefly
                             this.vx = 0;
                             this.vy = 0;
                         } else {
@@ -362,7 +446,6 @@
                         }
                     }
                 } else if (mode === 'fish') {
-                    // Smooth swimming with gentle sine wave motions
                     this.vy += Math.sin(this.animPhase) * 0.15;
                     if (this.changeDirTimer > this.changeDirInterval) {
                         this.changeDirTimer = 0;
@@ -373,7 +456,6 @@
                         this.vy = Math.sin(angle) * speed;
                     }
                 } else if (mode === 'bug') {
-                    // Fast skittering with frequent sharp turns
                     if (this.changeDirTimer > this.changeDirInterval) {
                         this.changeDirTimer = 0;
                         this.changeDirInterval = Math.floor(Math.random() * 15 + 10);
@@ -384,11 +466,12 @@
                     }
                 }
 
-                // Move
-                this.x += this.vx;
-                this.y += this.vy;
+                if (mode !== 'tail') {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                }
 
-                // Canvas edge bounce
+                // Screen boundary collisions
                 const margin = this.size;
                 if (this.x < margin) { this.x = margin; this.vx *= -1; }
                 if (this.x > canvas.width - margin) { this.x = canvas.width - margin; this.vx *= -1; }
@@ -402,156 +485,247 @@
 
             draw() {
                 ctx.save();
-                ctx.translate(this.x, this.y);
 
-                if (mode === 'laser') {
-                    // High-contrast glowing red dot
-                    const glowGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, this.size);
-                    glowGrad.addColorStop(0, '#ffffff');
-                    glowGrad.addColorStop(0.2, '#ff1a1a');
-                    glowGrad.addColorStop(0.6, 'rgba(255, 0, 0, 0.8)');
-                    glowGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                if (mode === 'tail') {
+                    // Render multi-segment fluffy tail
+                    for (let i = this.segments.length - 1; i >= 0; i--) {
+                        const seg = this.segments[i];
+                        const ratio = 1 - (i / this.segments.length);
+                        const segRadius = (this.size * 0.6) * ratio + 4;
 
-                    ctx.fillStyle = glowGrad;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
-                    ctx.fill();
+                        ctx.save();
+                        ctx.translate(seg.x, seg.y);
 
-                    // Core bright spot
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, this.size * 0.25, 0, Math.PI * 2);
-                    ctx.fill();
+                        // Fluffy fur gradient
+                        const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, segRadius);
+                        grad.addColorStop(0, '#f97316');
+                        grad.addColorStop(0.6, '#ea580c');
+                        grad.addColorStop(1, '#9a3412');
 
-                } else if (mode === 'mouse') {
-                    ctx.rotate(this.rotation);
-                    const s = this.size;
-
-                    // Mouse Body (Bright yellow/amber for high cat visibility)
-                    ctx.fillStyle = '#f59e0b';
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, s * 0.9, s * 0.6, 0, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Ears
-                    ctx.fillStyle = '#f43f5e';
-                    ctx.beginPath();
-                    ctx.arc(-s * 0.3, -s * 0.5, s * 0.35, 0, Math.PI * 2);
-                    ctx.arc(-s * 0.3, s * 0.5, s * 0.35, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Eyes
-                    ctx.fillStyle = '#0f172a';
-                    ctx.beginPath();
-                    ctx.arc(s * 0.4, -s * 0.25, s * 0.12, 0, Math.PI * 2);
-                    ctx.arc(s * 0.4, s * 0.25, s * 0.12, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Tail
-                    ctx.strokeStyle = '#f43f5e';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(-s * 0.9, 0);
-                    const tailWiggle = Math.sin(this.animPhase * 2) * 8;
-                    ctx.quadraticCurveTo(-s * 1.5, tailWiggle, -s * 2, tailWiggle * 0.5);
-                    ctx.stroke();
-
-                } else if (mode === 'fish') {
-                    ctx.rotate(this.rotation);
-                    const s = this.size;
-
-                    // Fish Body (Vivid Cyan/Yellow)
-                    ctx.fillStyle = '#38bdf8';
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, s, s * 0.5, 0, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Tail Fin (Wiggling)
-                    const tailAngle = Math.sin(this.animPhase * 2.5) * 0.4;
-                    ctx.save();
-                    ctx.translate(-s, 0);
-                    ctx.rotate(tailAngle);
-                    ctx.fillStyle = '#facc15';
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(-s * 0.7, -s * 0.5);
-                    ctx.lineTo(-s * 0.7, s * 0.5);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.restore();
-
-                    // Eye
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.arc(s * 0.5, -s * 0.15, s * 0.18, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#000000';
-                    ctx.beginPath();
-                    ctx.arc(s * 0.55, -s * 0.15, s * 0.09, 0, Math.PI * 2);
-                    ctx.fill();
-
-                } else if (mode === 'bug') {
-                    ctx.rotate(this.rotation);
-                    const s = this.size * 0.8;
-
-                    // Bug Legs (Rapid movement animation)
-                    ctx.strokeStyle = '#a3e635';
-                    ctx.lineWidth = 2.5;
-                    for (let i = -1; i <= 1; i++) {
-                        const legOffset = Math.sin(this.animPhase * 3 + i) * 6;
+                        ctx.fillStyle = grad;
                         ctx.beginPath();
-                        ctx.moveTo(i * s * 0.4, 0);
-                        ctx.lineTo(i * s * 0.4 + legOffset, -s * 0.9);
-                        ctx.stroke();
+                        ctx.arc(0, 0, segRadius, 0, Math.PI * 2);
+                        ctx.fill();
 
-                        ctx.beginPath();
-                        ctx.moveTo(i * s * 0.4, 0);
-                        ctx.lineTo(i * s * 0.4 - legOffset, s * 0.9);
-                        ctx.stroke();
+                        // Ring stripes
+                        if (i % 2 === 0) {
+                            ctx.fillStyle = '#fef08a';
+                            ctx.beginPath();
+                            ctx.arc(0, 0, segRadius * 0.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        ctx.restore();
                     }
 
-                    // Bug Shell / Body (Neon Green)
-                    ctx.fillStyle = '#84cc16';
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, s * 0.8, s * 0.5, 0, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Tail Tip Feather Tuft
+                    if (this.segments.length > 0) {
+                        const head = this.segments[0];
+                        ctx.save();
+                        ctx.translate(head.x, head.y);
+                        ctx.rotate(this.rotation);
+                        ctx.fillStyle = '#facc15';
+                        ctx.beginPath();
+                        ctx.ellipse(this.size * 0.3, 0, this.size * 0.5, this.size * 0.25, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
 
-                    // Head
-                    ctx.fillStyle = '#4d7c0f';
-                    ctx.beginPath();
-                    ctx.arc(s * 0.7, 0, s * 0.35, 0, Math.PI * 2);
-                    ctx.fill();
+                } else {
+                    ctx.translate(this.x, this.y);
 
-                    // Antennae
-                    ctx.strokeStyle = '#bef264';
-                    ctx.lineWidth = 1.5;
-                    ctx.beginPath();
-                    ctx.moveTo(s * 0.8, -s * 0.1);
-                    ctx.lineTo(s * 1.4, -s * 0.5);
-                    ctx.moveTo(s * 0.8, s * 0.1);
-                    ctx.lineTo(s * 1.4, s * 0.5);
-                    ctx.stroke();
+                    if (mode === 'laser') {
+                        const glowGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, this.size);
+                        glowGrad.addColorStop(0, '#ffffff');
+                        glowGrad.addColorStop(0.2, '#ff1a1a');
+                        glowGrad.addColorStop(0.6, 'rgba(255, 0, 0, 0.8)');
+                        glowGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+
+                        ctx.fillStyle = glowGrad;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.size * 0.25, 0, Math.PI * 2);
+                        ctx.fill();
+
+                    } else if (mode === 'butterfly') {
+                        ctx.rotate(this.rotation + Math.PI / 2);
+                        const s = this.size;
+                        const flapScale = Math.sin(this.animPhase);
+
+                        // Colorful 3D Wing Flapping Physics
+                        // Left Wings
+                        ctx.save();
+                        ctx.scale(flapScale, 1);
+                        ctx.fillStyle = '#c084fc';
+                        ctx.beginPath();
+                        ctx.ellipse(-s * 0.8, -s * 0.3, s * 0.8, s * 0.5, -0.2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#e879f9';
+                        ctx.beginPath();
+                        ctx.ellipse(-s * 0.6, s * 0.3, s * 0.6, s * 0.4, 0.2, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Wing pattern spot
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath();
+                        ctx.arc(-s * 0.7, -s * 0.3, s * 0.2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+
+                        // Right Wings
+                        ctx.save();
+                        ctx.scale(-flapScale, 1);
+                        ctx.fillStyle = '#c084fc';
+                        ctx.beginPath();
+                        ctx.ellipse(-s * 0.8, -s * 0.3, s * 0.8, s * 0.5, -0.2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#e879f9';
+                        ctx.beginPath();
+                        ctx.ellipse(-s * 0.6, s * 0.3, s * 0.6, s * 0.4, 0.2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath();
+                        ctx.arc(-s * 0.7, -s * 0.3, s * 0.2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+
+                        // Butterfly Body
+                        ctx.fillStyle = '#3b0764';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, s * 0.18, s * 0.7, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Antennae
+                        ctx.strokeStyle = '#f472b6';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(-2, -s * 0.6);
+                        ctx.quadraticCurveTo(-s * 0.4, -s * 1.1, -s * 0.5, -s * 1.2);
+                        ctx.moveTo(2, -s * 0.6);
+                        ctx.quadraticCurveTo(s * 0.4, -s * 1.1, s * 0.5, -s * 1.2);
+                        ctx.stroke();
+
+                    } else if (mode === 'mouse') {
+                        ctx.rotate(this.rotation);
+                        const s = this.size;
+
+                        ctx.fillStyle = '#f59e0b';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, s * 0.9, s * 0.6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.fillStyle = '#f43f5e';
+                        ctx.beginPath();
+                        ctx.arc(-s * 0.3, -s * 0.5, s * 0.35, 0, Math.PI * 2);
+                        ctx.arc(-s * 0.3, s * 0.5, s * 0.35, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.fillStyle = '#0f172a';
+                        ctx.beginPath();
+                        ctx.arc(s * 0.4, -s * 0.25, s * 0.12, 0, Math.PI * 2);
+                        ctx.arc(s * 0.4, s * 0.25, s * 0.12, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.strokeStyle = '#f43f5e';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(-s * 0.9, 0);
+                        const tailWiggle = Math.sin(this.animPhase * 2) * 8;
+                        ctx.quadraticCurveTo(-s * 1.5, tailWiggle, -s * 2, tailWiggle * 0.5);
+                        ctx.stroke();
+
+                    } else if (mode === 'fish') {
+                        ctx.rotate(this.rotation);
+                        const s = this.size;
+
+                        ctx.fillStyle = '#38bdf8';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, s, s * 0.5, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        const tailAngle = Math.sin(this.animPhase * 2.5) * 0.4;
+                        ctx.save();
+                        ctx.translate(-s, 0);
+                        ctx.rotate(tailAngle);
+                        ctx.fillStyle = '#facc15';
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(-s * 0.7, -s * 0.5);
+                        ctx.lineTo(-s * 0.7, s * 0.5);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.restore();
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(s * 0.5, -s * 0.15, s * 0.18, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#000000';
+                        ctx.beginPath();
+                        ctx.arc(s * 0.55, -s * 0.15, s * 0.09, 0, Math.PI * 2);
+                        ctx.fill();
+
+                    } else if (mode === 'bug') {
+                        ctx.rotate(this.rotation);
+                        const s = this.size * 0.8;
+
+                        ctx.strokeStyle = '#a3e635';
+                        ctx.lineWidth = 2.5;
+                        for (let i = -1; i <= 1; i++) {
+                            const legOffset = Math.sin(this.animPhase * 3 + i) * 6;
+                            ctx.beginPath();
+                            ctx.moveTo(i * s * 0.4, 0);
+                            ctx.lineTo(i * s * 0.4 + legOffset, -s * 0.9);
+                            ctx.stroke();
+
+                            ctx.beginPath();
+                            ctx.moveTo(i * s * 0.4, 0);
+                            ctx.lineTo(i * s * 0.4 - legOffset, s * 0.9);
+                            ctx.stroke();
+                        }
+
+                        ctx.fillStyle = '#84cc16';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, s * 0.8, s * 0.5, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.fillStyle = '#4d7c0f';
+                        ctx.beginPath();
+                        ctx.arc(s * 0.7, 0, s * 0.35, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.strokeStyle = '#bef264';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(s * 0.8, -s * 0.1);
+                        ctx.lineTo(s * 1.4, -s * 0.5);
+                        ctx.moveTo(s * 0.8, s * 0.1);
+                        ctx.lineTo(s * 1.4, s * 0.5);
+                        ctx.stroke();
+                    }
                 }
 
                 ctx.restore();
             }
         }
 
-        // Particle Effects (Sparks, Ripples, Splats)
+        // Particle System
         class Particle {
-            constructor(x, y, color, type = 'spark') {
+            constructor(x, y, color, type = 'spark', speedMult = 1) {
                 this.x = x;
                 this.y = y;
                 this.color = color;
                 this.type = type;
                 this.radius = Math.random() * 6 + 2;
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 8 + 2;
+                const speed = (Math.random() * 8 + 2) * speedMult;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
                 this.alpha = 1;
                 this.decay = Math.random() * 0.04 + 0.02;
-                this.maxRadius = Math.random() * 40 + 20; // For ripples
             }
 
             update() {
@@ -586,7 +760,7 @@
             }
         }
 
-        // Visual Paw Print Overlay
+        // Paw Print Overlay
         class PawPrint {
             constructor(x, y) {
                 this.x = x;
@@ -615,7 +789,7 @@
                 ctx.ellipse(0, 4, 14, 11, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // 4 Toe Beans
+                // Toe Beans
                 const toes = [
                     { x: -14, y: -10, rx: 4, ry: 6, a: -0.3 },
                     { x: -5,  y: -16, rx: 4.5, ry: 6.5, a: -0.1 },
@@ -637,7 +811,6 @@
             }
         }
 
-        // Sync Preys with target count setting
         function syncPreys() {
             while (preys.length < targetCount) {
                 preys.push(new Prey());
@@ -647,16 +820,13 @@
             }
         }
 
-        // Initialize Game Targets
         syncPreys();
 
-        // Main Animation Loop (60fps)
+        // Main Loop
         function animate() {
-            // Draw background
             ctx.fillStyle = modeConfigs[mode].bg;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Underwater Background Effect for Fish mode
             if (mode === 'fish') {
                 ctx.fillStyle = 'rgba(56, 189, 248, 0.03)';
                 const t = Date.now() * 0.001;
@@ -671,21 +841,18 @@
                 }
             }
 
-            // Draw & Update Paw Prints
             for (let i = pawPrints.length - 1; i >= 0; i--) {
                 pawPrints[i].update();
                 pawPrints[i].draw();
                 if (pawPrints[i].alpha <= 0) pawPrints.splice(i, 1);
             }
 
-            // Draw & Update Particles
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].update();
                 particles[i].draw();
                 if (particles[i].alpha <= 0) particles.splice(i, 1);
             }
 
-            // Update & Draw Targets
             preys.forEach(prey => {
                 prey.update();
                 prey.draw();
@@ -694,40 +861,44 @@
             requestAnimationFrame(animate);
         }
 
-        // Start animation loop on window load
         window.onload = function() {
             animate();
             lucide.createIcons();
         };
 
-        // Touch & Interaction Event Handling
+        // Touch & Tap Event Handler
         function handleInteraction(clientX, clientY) {
             initAudio();
-
-            // Spawn visual paw print
             pawPrints.push(new PawPrint(clientX, clientY));
 
-            // Check hit detection on preys
             let hit = false;
             preys.forEach(prey => {
                 const dist = Math.hypot(clientX - prey.x, clientY - prey.y);
-                if (dist < prey.size * 1.5) {
+                if (dist < prey.size * 1.6) {
                     hit = true;
                     score++;
                     document.getElementById('scoreText').innerText = score;
 
-                    // Play audio feedback
                     playSound(mode);
 
-                    // Trigger Vibration if supported
                     if (navigator.vibrate) {
                         navigator.vibrate(40);
                     }
 
-                    // Create hit particle burst
+                    // Particle bursts on hit
                     if (mode === 'laser') {
                         for (let i = 0; i < 15; i++) {
                             particles.push(new Particle(prey.x, prey.y, '#ff4d4d', 'spark'));
+                        }
+                    } else if (mode === 'butterfly') {
+                        for (let i = 0; i < 18; i++) {
+                            particles.push(new Particle(prey.x, prey.y, '#e879f9', 'spark', 1.2));
+                            particles.push(new Particle(prey.x, prey.y, '#fef08a', 'spark', 0.8));
+                        }
+                    } else if (mode === 'tail') {
+                        for (let i = 0; i < 15; i++) {
+                            particles.push(new Particle(prey.x, prey.y, '#f97316', 'spark'));
+                            particles.push(new Particle(prey.x, prey.y, '#fef08a', 'spark'));
                         }
                     } else if (mode === 'mouse') {
                         for (let i = 0; i < 12; i++) {
@@ -744,44 +915,38 @@
                         }
                     }
 
-                    // Respawn or relocate prey
                     prey.reset();
                 }
             });
 
-            // Tap on water splash effect when no fish hit
             if (!hit && mode === 'fish') {
                 particles.push(new Particle(clientX, clientY, 'rgba(56, 189, 248, 0.6)', 'ripple'));
                 playSound('fish');
             }
         }
 
-        // Register Touch & Pointer Events
         canvas.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             handleInteraction(e.clientX, e.clientY);
         });
 
-        // Mode Switching Logic
         function switchMode(newMode) {
             mode = newMode;
             document.getElementById('modeName').innerText = modeConfigs[mode].name;
             
-            // Highlight Dock Button
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('ring-2', 'ring-cyan-400', 'bg-slate-700/60'));
             event.currentTarget.classList.add('ring-2', 'ring-cyan-400', 'bg-slate-700/60');
 
-            // Reset preys positions for new mode
             preys.forEach(p => p.reset());
         }
 
-        // Parent Control Safety Lock (3-Second Hold)
+        // Parent Lock (3-Second Hold)
         const lockBtn = document.getElementById('lockBtn');
         const holdCircle = document.getElementById('holdCircle');
         const settingsModal = document.getElementById('settingsModal');
         let holdTimer = null;
         let holdStartTime = 0;
-        const holdDuration = 3000; // 3 seconds
+        const holdDuration = 3000;
 
         function startHold(e) {
             e.preventDefault();
@@ -810,7 +975,6 @@
         lockBtn.addEventListener('pointerup', resetHold);
         lockBtn.addEventListener('pointerleave', resetHold);
 
-        // Open/Close Dashboard Modal
         function openSettings() {
             settingsModal.classList.remove('hidden');
         }
@@ -819,7 +983,6 @@
             settingsModal.classList.add('hidden');
         });
 
-        // Owner Dashboard Controls
         document.getElementById('targetCountInput').addEventListener('input', (e) => {
             targetCount = parseInt(e.target.value);
             document.getElementById('targetCountVal').innerText = targetCount;
@@ -828,8 +991,8 @@
 
         function setSpeed(val) {
             speedMultiplier = val;
-            const labels = { 1: 'Slow', 2: 'Medium', 3.5: 'Hyper' };
-            document.getElementById('speedVal').innerText = labels[val] || 'Custom';
+            const labels = { 1: '慢速', 2: '中等', 3.5: '極速' };
+            document.getElementById('speedVal').innerText = labels[val] || '自訂';
             
             document.querySelectorAll('.speed-btn').forEach(btn => {
                 btn.className = 'speed-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs';
@@ -839,8 +1002,8 @@
 
         function setSize(val) {
             baseSize = val;
-            const labels = { 25: 'Small', 40: 'Medium', 60: 'Large' };
-            document.getElementById('sizeVal').innerText = labels[val] || 'Custom';
+            const labels = { 25: '偏小', 40: '標準', 60: '大型' };
+            document.getElementById('sizeVal').innerText = labels[val] || '自訂';
             
             document.querySelectorAll('.size-btn').forEach(btn => {
                 btn.className = 'size-btn px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 font-medium transition-all text-xs';
@@ -855,21 +1018,19 @@
             const btn = document.getElementById('audioToggleBtn');
             const txt = document.getElementById('audioStatusText');
             if (soundEnabled) {
-                txt.innerText = 'ENABLED';
+                txt.innerText = '已開啟';
                 btn.className = 'px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold flex items-center space-x-2 text-xs';
             } else {
-                txt.innerText = 'MUTED';
+                txt.innerText = '已靜音';
                 btn.className = 'px-4 py-2 bg-rose-500/20 border border-rose-500/40 text-rose-400 rounded-xl font-bold flex items-center space-x-2 text-xs';
             }
         }
 
-        // Reset Score
         document.getElementById('resetScoreBtn').addEventListener('click', () => {
             score = 0;
             document.getElementById('scoreText').innerText = score;
         });
 
-        // Fullscreen Toggle
         document.getElementById('fullscreenBtn').addEventListener('click', () => {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => {
